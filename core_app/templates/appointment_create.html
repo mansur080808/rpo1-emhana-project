@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="d-flex align-items-center mb-4">
+            <a href="{% url 'emhana:appointment_list' %}" class="btn btn-outline-secondary btn-sm me-3">
+                <i class="fa-solid fa-arrow-left"></i>
+            </a>
+            <h4 class="fw-bold mb-0">
+                <i class="fa-solid fa-calendar-plus me-2 text-primary"></i>Новая запись на прием
+            </h4>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <form method="post">
+                    {% csrf_token %}
+
+                    <h6 class="text-muted fw-semibold mb-3 text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.08em;">
+                        <i class="fa-solid fa-user me-1"></i>Данные пациента
+                    </h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">ИИН <span class="text-danger">*</span></label>
+                            <input type="text" name="iin" class="form-control"
+                                   placeholder="12 цифр" maxlength="12" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">ФИО <span class="text-danger">*</span></label>
+                            <input type="text" name="full_name" class="form-control"
+                                   placeholder="Фамилия Имя Отчество" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Телефон <span class="text-danger">*</span></label>
+                            <input type="text" name="phone" class="form-control"
+                                   placeholder="+7 700 000 00 00" required>
+                        </div>
+                    </div>
+
+                    <hr class="my-3">
+
+                    <h6 class="text-muted fw-semibold mb-3 text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.08em;">
+                        <i class="fa-solid fa-stethoscope me-1"></i>Детали приема
+                    </h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Врач <span class="text-danger">*</span></label>
+                            <select name="doctor_id" class="form-select" required>
+                                <option value="">— Выберите врача —</option>
+                                {% for doctor in doctors %}
+                                <option value="{{ doctor.id }}">
+                                    {{ doctor.user.get_full_name }} ({{ doctor.specialty }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Дата и время <span class="text-danger">*</span></label>
+                            <input type="datetime-local" name="date_time" class="form-control" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Жалобы / Заметки</label>
+                            <textarea name="notes" class="form-control" rows="3"
+                                      placeholder="Опишите жалобы пациента..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="fa-solid fa-floppy-disk me-1"></i>Сохранить запись
+                        </button>
+                        <a href="{% url 'emhana:appointment_list' %}" class="btn btn-outline-secondary">
+                            Отмена
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

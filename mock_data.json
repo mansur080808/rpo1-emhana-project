@@ -1,0 +1,24 @@
+{
+  "patients": [
+    {"iin": "960194100004", "full_name": "Нұрсұлтан Ермекұлы Қасымов", "phone": "+7 711 222 00 66"},
+    {"iin": "876670900008", "full_name": "Айдана Серікқызы Төлегенова", "phone": "+7 766 978 47 57"}
+  ],
+  "doctors": [
+    {
+      "username": "doctor.terapevt",
+      "password": "docqwerty111",
+      "first_name": "Аружан",
+      "last_name": "Сейітова",
+      "specialty": "Терапевт"
+    }
+  ],
+  "appointments": [
+    {
+      "patient_iin": "370575300004",
+      "doctor_username": "doctor.terapevt",
+      "date_time": "2026-08-25T07:00:00Z",
+      "status": "completed",
+      "notes": "Первичный осмотр."
+    }
+  ]
+}

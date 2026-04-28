@@ -1,0 +1,234 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold mb-0">
+        <i class="fa-solid fa-calendar-check me-2 text-primary"></i>Список записей
+    </h4>
+    <a href="{% url 'emhana:appointment_create' %}" class="btn btn-primary">
+        <i class="fa-solid fa-plus me-1"></i>Новая запись
+    </a>
+</div>
+
+<!-- Фильтры + живой поиск по ИИН -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body py-3">
+        <form method="get" id="filterForm" class="row g-3 align-items-end">
+            <!-- Живой поиск по ИИН -->
+            <div class="col-md-4">
+                <label class="form-label fw-semibold small text-muted">Поиск по ИИН</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fa-solid fa-magnifying-glass"></i></span>
+                    <input type="text" id="searchIIN" name="q" class="form-control"
+                           placeholder="Введите ИИН..."
+                           value="{{ search_iin }}" autocomplete="off">
+                    <span class="input-group-text d-none" id="searchSpinner">
+                        <span class="spinner-border spinner-border-sm text-secondary"></span>
+                    </span>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-semibold small text-muted">Статус</label>
+                <select name="status" class="form-select" id="statusFilter">
+                    <option value="">Все статусы</option>
+                    <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Ожидает</option>
+                    <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Завершён</option>
+                    <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Отменён</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-semibold small text-muted">Врач</label>
+                <select name="doctor_id" class="form-select" id="doctorFilter">
+                    <option value="">Все врачи</option>
+                    {% for doctor in doctors %}
+                    <option value="{{ doctor.id }}" {% if doctor_filter == doctor.id|stringformat:"s" %}selected{% endif %}>
+                        {{ doctor.user.get_full_name }} — {{ doctor.specialty }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <a href="{% url 'emhana:appointment_list' %}" class="btn btn-outline-secondary w-100">
+                    <i class="fa-solid fa-xmark me-1"></i>Сброс
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Счётчик результатов -->
+<div class="d-flex justify-content-between align-items-center mb-2 px-1">
+    <span class="text-muted small" id="resultsCount">
+        Записей: <strong>{{ page_obj.paginator.count }}</strong>
+        &nbsp;|&nbsp; Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}
+    </span>
+</div>
+
+<!-- Таблица -->
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" id="appointmentsTable">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-3">#</th>
+                        <th>Пациент</th>
+                        <th>Врач</th>
+                        <th>Дата и время</th>
+                        <th>Статус</th>
+                        <th>Жалобы</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    {% for apt in page_obj %}
+                    <tr>
+                        <td class="ps-3 text-muted">{{ forloop.counter }}</td>
+                        <td>
+                            <div class="fw-semibold">{{ apt.patient.full_name }}</div>
+                            <div class="small text-muted">ИИН: {{ apt.patient.iin }}</div>
+                        </td>
+                        <td>
+                            <div>{{ apt.doctor.user.get_full_name }}</div>
+                            <div class="small text-muted">{{ apt.doctor.specialty }}</div>
+                        </td>
+                        <td>{{ apt.date_time|date:"d.m.Y H:i" }}</td>
+                        <td>
+                            {% if apt.status == 'pending' %}
+                                <span class="badge bg-warning text-dark">Ожидает</span>
+                            {% elif apt.status == 'completed' %}
+                                <span class="badge bg-success">Завершён</span>
+                            {% else %}
+                                <span class="badge bg-danger">Отменён</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-muted small">{{ apt.notes|truncatechars:50|default:"—" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5 text-muted">
+                            <i class="fa-solid fa-calendar-xmark fa-3x mb-3 opacity-25 d-block"></i>
+                            Записей не найдено
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Пагинация -->
+{% if page_obj.paginator.num_pages > 1 %}
+<nav class="mt-4" id="paginationBlock">
+    <ul class="pagination justify-content-center" id="pagination">
+        {% if page_obj.has_previous %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ search_iin }}&status={{ status_filter }}&doctor_id={{ doctor_filter }}">
+                <i class="fa-solid fa-chevron-left"></i>
+            </a>
+        </li>
+        {% endif %}
+
+        {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+                <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+            {% elif num >= page_obj.number|add:"-3" and num <= page_obj.number|add:"3" %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ num }}&q={{ search_iin }}&status={{ status_filter }}&doctor_id={{ doctor_filter }}">{{ num }}</a>
+                </li>
+            {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ search_iin }}&status={{ status_filter }}&doctor_id={{ doctor_filter }}">
+                <i class="fa-solid fa-chevron-right"></i>
+            </a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Живой поиск по ИИН через AJAX (без перезагрузки страницы)
+const searchInput = document.getElementById('searchIIN');
+const tableBody = document.getElementById('tableBody');
+const resultsCount = document.getElementById('resultsCount');
+const paginationBlock = document.getElementById('paginationBlock');
+const spinner = document.getElementById('searchSpinner');
+
+const STATUS_BADGES = {
+    'pending':   '<span class="badge bg-warning text-dark">Ожидает</span>',
+    'completed': '<span class="badge bg-success">Завершён</span>',
+    'cancelled': '<span class="badge bg-danger">Отменён</span>',
+};
+
+let debounceTimer = null;
+
+searchInput.addEventListener('input', function () {
+    clearTimeout(debounceTimer);
+    const query = this.value.trim();
+
+    // Если поле пустое — сабмитим форму чтобы вернуть обычный режим
+    if (query.length === 0) {
+        document.getElementById('filterForm').submit();
+        return;
+    }
+
+    // Debounce: ждём 400ms после последнего символа
+    debounceTimer = setTimeout(() => {
+        const status = document.getElementById('statusFilter').value;
+        const doctorId = document.getElementById('doctorFilter').value;
+        const url = `?q=${encodeURIComponent(query)}&status=${status}&doctor_id=${doctorId}`;
+
+        spinner.classList.remove('d-none');
+
+        fetch(url, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(res => res.json())
+        .then(data => {
+            spinner.classList.add('d-none');
+
+            // Скрываем пагинацию при живом поиске
+            if (paginationBlock) paginationBlock.style.display = 'none';
+
+            resultsCount.innerHTML = `Найдено: <strong>${data.total}</strong>`;
+
+            if (data.results.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center py-5 text-muted">
+                            <i class="fa-solid fa-calendar-xmark fa-3x mb-3 opacity-25 d-block"></i>
+                            По ИИН <strong>${query}</strong> записей не найдено
+                        </td>
+                    </tr>`;
+                return;
+            }
+
+            tableBody.innerHTML = data.results.map((apt, i) => `
+                <tr>
+                    <td class="ps-3 text-muted">${i + 1}</td>
+                    <td>
+                        <div class="fw-semibold">${apt.patient_name}</div>
+                        <div class="small text-muted">ИИН: ${apt.patient_iin}</div>
+                    </td>
+                    <td>
+                        <div>${apt.doctor_name}</div>
+                        <div class="small text-muted">${apt.doctor_specialty}</div>
+                    </td>
+                    <td>${apt.date_time}</td>
+                    <td>${STATUS_BADGES[apt.status] || apt.status}</td>
+                    <td class="text-muted small">${apt.notes || '—'}</td>
+                </tr>
+            `).join('');
+        })
+        .catch(() => { spinner.classList.add('d-none'); });
+    }, 400);
+});
+</script>
+{% endblock %}
